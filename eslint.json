@@ -1,0 +1,11 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "eslint:recommended"
+  ],
+  "jsRules": {},
+  "rules": {
+    "trailing-comma": [ false ]
+  },
+  "rulesDirectory": []
+}
