@@ -21,11 +21,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/rooms", async (req, res) => {
-    // expects query param of name as in booking url
-    if (!req.query.name) {
-        res.status(400).send("Missing name query param");
-        return;
-    }
+
     const name = req.query.name;
     const country = req.query.country || "en";
     const lang = req.query.lang || "en";
@@ -67,11 +63,7 @@ app.get("/rooms", async (req, res) => {
 
 app.get("/prices", async (req, res) => {
 
-    // expects rooms to get price of to be in body as list  
-    if (!req.body.rooms) {
-        res.status(400).send("Missing rooms in body");
-        return;
-    }
+    const reqRooms: string[] = req.body.rooms || ["all"];
 
     if (!req.query.name) {
         res.status(400).send("Missing name query param");
@@ -82,8 +74,6 @@ app.get("/prices", async (req, res) => {
     const lang = req.query.lang || "en";
     const checkin = req.query.checkin || dateToString(new Date());
     const checkout = req.query.checkout || dateToString(new Date(new Date().getTime() + 24 * 60 * 60 * 1000));
-
-    console.log(checkin, checkout);
 
     // need to fetch with a date from past so it gives a basic list table
     let url = `https://www.booking.com/hotel/${country}/${name}.${lang}.html?checkin=${checkin};checkout=${checkout};group_adults=1;group_children=0;hapos=1;hpos=1;no_rooms=1;req_adults=1;req_children=0;room1=A;sb_price_type=total;soh=1`;
@@ -111,31 +101,54 @@ app.get("/prices", async (req, res) => {
     const dom = new jsdom.JSDOM(page.data);
     const rows = dom.window.document.getElementsByTagName("tbody")[0].querySelectorAll("tr.e2e-hprt-table-row");
 
+    type room = {
+        name: string,
+        price: string,
+        occupancy: number,
+    }
 
-    let rooms: any[] = [];
+    let rooms: room[] = [];
+
     let prevRoom = "";
     for (let i = 0; i < rows.length; i++) {
         const roomRow = new jsdom.JSDOM(rows[i].innerHTML);
+        
         let roomName = roomRow.window.document.getElementsByTagName("span")[0].innerHTML;
         roomName = roomName.replace(/(\r\n|\n|\r)/gm, "");
+
         let price = roomRow.window.document.querySelectorAll("span.prco-valign-middle-helper")[0].innerHTML;
         price = price.replace(/(\r\n|\n|\r)/gm, "");
 
         let occupancy = roomRow.window.document.querySelectorAll("span.bui-u-sr-only")[0].innerHTML;
-
         const numRe = new RegExp("[0-9]+", "g");
         let occupancyNums = occupancy.match(numRe);
 
-        let room = {};
-        if (roomName[0] === "<") {
-            room = { name: prevRoom, price: price, occupancy: (occupancyNums[1] || occupancyNums[0]) };
+        let room: room;
+        
+        if (roomName[0] === "<") { // table row where name is not defined assumes is same as one above
+            room = { name: prevRoom, price, occupancy: (occupancyNums[1] || occupancyNums[0]) };
         } else {
             prevRoom = roomName;
-            room = { name: roomName, price: price, occupancy: (occupancyNums[1] || occupancyNums[0]) };
+            room = { name: roomName, price, occupancy: (occupancyNums[1] || occupancyNums[0]) };
         }
         rooms.push(room);
     }
-    res.send({ rooms, url });
+
+    let response = {};
+    if (reqRooms[0] === "all") {
+        // select all rooms
+        response = { rooms, url };
+    }else{
+        // select all rooms that match
+        response = { rooms: rooms.filter(room => reqRooms.includes(room.name)), url };
+        rooms.forEach((room: room) => {
+            if (reqRooms.includes(room.name)) {
+                
+            }
+        });
+    }
+
+    res.send(response);
 });
 
 // start the Express server
