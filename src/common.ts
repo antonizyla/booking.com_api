@@ -23,4 +23,8 @@ function extractOccupancy(occupancyStr: string | null): number {
 }
 
 
-export { dateToString, extractOccupancy };
+function toDecimalSep(str: string): string {
+    return str.replace(",", ".");
+}
+
+export { dateToString, extractOccupancy, toDecimalSep };

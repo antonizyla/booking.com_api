@@ -3,7 +3,7 @@ import Express from "express";
 import jsdom from "jsdom";
 const randomUseragent = require("random-useragent");
 
-import {dateToString, extractOccupancy} from "../../common";
+import { dateToString, extractOccupancy } from "../../common";
 
 module.exports.prices = async function(req: Express.Request, res: Express.Response) {
     const reqRooms: string[] = req.body.rooms || ["all"];
@@ -66,7 +66,7 @@ module.exports.prices = async function(req: Express.Request, res: Express.Respon
 
         let room: room;
 
-        if (roomName[0] != "<"){
+        if (roomName[0] != "<") {
             prevRoom = roomName;
         }
         room = { name: roomName, price, occupancy: occupancy };
