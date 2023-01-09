@@ -1,11 +1,9 @@
 import axios from "axios";
 import Express, { response } from "express";
 import jsdom from "jsdom";
-import { toDecimalSep } from "../../common";
+import { toDecimalSep, fetchData } from "../../common";
 const randomUserAgent = require("random-useragent");
 
-
-import "../../common.ts"
 module.exports.info = async function(req: Express.Request, res: Express.Response) {
 
     if (!req.query.name) {
@@ -13,32 +11,28 @@ module.exports.info = async function(req: Express.Request, res: Express.Response
         return;
     }
 
+    const debug: boolean = Boolean(req.query.debug) || false
+
     const hotelName = req.query.name;
     const hotelCountry = req.query.country || "pl";
     const lang = req.query.lang || "en";
 
     const url = `https://www.booking.com/hotel/${hotelCountry}/${hotelName}.${lang}.html`;
+    const userAgent = randomUserAgent.getRandom();
+    const headers = { "Accept-Language": `${lang};q=0.9` };
 
-    const headers = {
-        "User-Agent": randomUserAgent.getRandom(),
-        "DNT": "1",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        "Accept-Language": `${lang};q=0.9`,
-        "Cache-Control": "max-age=0",
-        "Upgrade-Insecure-Requests": "1",
-    }
+    const startScrapeTime = new Date();
+    const page = await fetchData(url, headers, debug);
+    const endScrapeTime = new Date();
 
-    const page = await axios.get(url, { headers }).then((response) => {
-        return response;
-    }).catch((error) => {
-        res.send({ message: error.message, name: error.name });
-    });
-
-    if (page === undefined) {
+    if (page.content == null) {
         return;
     }
 
-    const dom = new jsdom.JSDOM(page.data);
+    const dom = page.content;
+
+    const endParseTime = new Date();
+
     let desc = dom.window.document.querySelectorAll("div.hp_desc_main_content")[0]?.textContent
 
     // remove all newlines in description
@@ -73,8 +67,23 @@ module.exports.info = async function(req: Express.Request, res: Express.Response
         }
     });
 
+    const endExecuteTime = new Date();
 
-    res.send({ description: desc, ammenities: ammenitiesArray, overallRating: rating, reviewCategories: reviewCategoriesObj, url });
+    const debugVals = {
+        url: url,
+        total: endExecuteTime.getTime() - startScrapeTime.getTime(),
+        extRequest: endScrapeTime.getTime() - startScrapeTime.getTime(),
+        parseTime: endParseTime.getTime() - endScrapeTime.getTime(),
+        executeTime: endExecuteTime.getTime() - endParseTime.getTime(),
+        userAgent,
+    }
 
+    let response = { description: desc, ammenities: ammenitiesArray, overallRating: rating, reviewCategories: reviewCategoriesObj };
+
+    if (debug) {
+        res.send(Object.assign(response, { debug: debugVals }));
+    } else {
+        res.send(response);
+    }
 }
 
