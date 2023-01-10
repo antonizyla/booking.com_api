@@ -18,12 +18,10 @@ module.exports.info = async function(req: Express.Request, res: Express.Response
     const lang = req.query.lang || "en";
 
     const url = `https://www.booking.com/hotel/${hotelCountry}/${hotelName}.${lang}.html`;
-    const userAgent = randomUserAgent.getRandom();
     const headers = { "Accept-Language": `${lang};q=0.9` };
 
     const startScrapeTime = new Date();
     const page = await fetchData(url, headers, debug);
-    const endScrapeTime = new Date();
 
     if (page.content == null) {
         return;
@@ -70,20 +68,16 @@ module.exports.info = async function(req: Express.Request, res: Express.Response
     const endExecuteTime = new Date();
 
     const debugVals = {
-        url: url,
         total: endExecuteTime.getTime() - startScrapeTime.getTime(),
-        extRequest: endScrapeTime.getTime() - startScrapeTime.getTime(),
-        parseTime: endParseTime.getTime() - endScrapeTime.getTime(),
         executeTime: endExecuteTime.getTime() - endParseTime.getTime(),
-        userAgent,
     }
 
     let response = { description: desc, ammenities: ammenitiesArray, overallRating: rating, reviewCategories: reviewCategoriesObj };
 
     if (debug) {
-        res.send(Object.assign(response, { debug: debugVals }));
+        res.send(Object.assign(response, { debug: { timing: debugVals, fetch: page.debug, url } }));
     } else {
-        res.send(response);
+        res.send({ response });
     }
 }
 

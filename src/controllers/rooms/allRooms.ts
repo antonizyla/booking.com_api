@@ -3,7 +3,7 @@ import jsdom from "jsdom";
 import Express from "express";
 const randomUseragent = require('random-useragent');
 
-import { extractOccupancy } from "../../common";
+import { extractOccupancy, fetchData } from "../../common";
 
 // get all rooms that are available for this property
 module.exports.all = async function(req: Express.Request, res: Express.Response) {
@@ -16,26 +16,16 @@ module.exports.all = async function(req: Express.Request, res: Express.Response)
     let url = `https://www.booking.com/hotel/${country}/${name}.${lang}.html?checkin=2021-05-02;checkout=2021-05-06;dest_id=-512768;dest_type=city;dist=0;group_adults=1;group_children=0;hapos=1;hpos=1;no_rooms=1;req_adults=1;req_children=0;room1=A;sb_price_type=total;soh=1;sr_order=popularity;type=total;ucfs=1&#no_availability_msg`;
 
     const headers = {
-        "User-Agent": randomUseragent.getRandom(),
-        "DNT": "1",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
         "Accept-Language": `${lang},en;q=0.9`,
-        "Cache-Control": "max-age=0",
-        "Upgrade-Insecure-Requests": "1",
     }
 
-    const booking = await axios.get(url, { headers }).then((response: any) => {
-        return response
-    }).catch((err: any) => {
-        res.send({ message: err.message, name: err.name });
-        return;
-    });
+    const page = await fetchData(url, headers, Boolean(req.query.debug));
 
-    if (booking == undefined) {
+    if (page.content == null) {
         return 0;
     }
 
-    const dom = new jsdom.JSDOM(booking.data);
+    const dom = page.content;
 
     type room = {
         name: string,
@@ -55,8 +45,11 @@ module.exports.all = async function(req: Express.Request, res: Express.Response)
         if (roomName != null && roomId != null) {
             rooms.push({ name: roomName, internalRef: roomId, occupancy: occupancy });
         }
-
     }
 
-    res.send({ rooms, url });
+    if (Boolean(req.query.debug)) {
+        res.send({ rooms, debug: { fetch: page.debug, url } });
+    } else {
+        res.send({ rooms });
+    }
 }

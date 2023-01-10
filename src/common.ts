@@ -30,7 +30,7 @@ function toDecimalSep(str: string): string {
 }
 
 async function fetchData(url: string, headers: object, debug: boolean = false) {
-    console.log("Fetching data from: " + url);
+
     const userAgent = randomUserAgent.getRandom();
     let defaultHeaders = {
         "User-Agent": userAgent,
@@ -59,24 +59,26 @@ async function fetchData(url: string, headers: object, debug: boolean = false) {
         status: error ? "Error" : "Success",
     }
 
+    let response;
     if (page != undefined) {
+    
         const timeBeforeParse = new Date();
         let content = new jsdom.JSDOM(page.data);
         const timeAfterParse = new Date();
-        Object.assign(debugVals, { parseTimeMs: timeAfterParse.getTime() - timeBeforeParse.getTime() });
+        
+        response = { content: content };
+        Object.assign(debugVals, { parseTime: timeAfterParse.getTime() - timeBeforeParse.getTime() })
 
-        let response = { content, status: (error ? "Error" : "Success") };
-        if (debug){
-            Object.assign(response, { debug: debugVals });
-        }
-        return response;
-    } else {
-        let response = { content: null, error, status: (error ? "Error" : "Success") };
-        if (debug){
-            Object.assign(response, { debug: debugVals });
-        }
-        return response;
+    }else{
+        response = {content: null};
     }
+
+    if (debug) {
+        return Object.assign(response, {debug: debugVals});
+    } else {
+        return Object.assign(response, {debug: null});
+    }
+
 }
 
 
