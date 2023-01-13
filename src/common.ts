@@ -29,7 +29,7 @@ function toDecimalSep(str: string): string {
     return str.replace(",", ".");
 }
 
-async function fetchData(url: string, headers: object, debug: boolean = false) {
+async function fetchData(url: string, headers: object, debug: boolean = false, repeat: number = 3) {
 
     const userAgent = randomUserAgent.getRandom();
     let defaultHeaders = {
@@ -44,12 +44,19 @@ async function fetchData(url: string, headers: object, debug: boolean = false) {
 
     const startTime = new Date();
 
+    const repeatMax = repeat;
+    let page;
     let error;
-    const page = await axios.get(url, { headers }).then((response) => {
-        return response;
-    }).catch((error) => {
-        error = { error: error.message, name: error.name };
-    });
+
+    while (page == undefined && repeat > 0) {
+        page = await axios.get(url, { headers }).then((response) => {
+            return response;
+        }).catch((error) => {
+            error = { error: error.message, name: error.name };
+        });
+        repeat--;
+        console.log("Getting Data")
+    }
 
     const timeAfterReq = new Date();
 
@@ -57,26 +64,27 @@ async function fetchData(url: string, headers: object, debug: boolean = false) {
         headers: defaultHeaders,
         externalFetchTimeMS: timeAfterReq.getTime() - startTime.getTime(),
         status: error ? "Error" : "Success",
+        attempts: repeatMax - repeat,
     }
 
     let response;
     if (page != undefined) {
-    
+
         const timeBeforeParse = new Date();
         let content = new jsdom.JSDOM(page.data);
         const timeAfterParse = new Date();
-        
+
         response = { content: content };
         Object.assign(debugVals, { parseTime: timeAfterParse.getTime() - timeBeforeParse.getTime() })
 
-    }else{
-        response = {content: null};
+    } else {
+        response = { content: null };
     }
 
     if (debug) {
-        return Object.assign(response, {debug: debugVals});
+        return Object.assign(response, { debug: debugVals });
     } else {
-        return Object.assign(response, {debug: null});
+        return Object.assign(response, { debug: null });
     }
 
 }

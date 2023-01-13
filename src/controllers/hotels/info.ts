@@ -24,6 +24,10 @@ module.exports.info = async function(req: Express.Request, res: Express.Response
     const page = await fetchData(url, headers, debug);
 
     if (page.content == null) {
+        if (debug) {
+            res.send({ error: "No content", debug: page.debug, url });
+        }
+        res.send("An error occurred")
         return;
     }
 
@@ -77,7 +81,7 @@ module.exports.info = async function(req: Express.Request, res: Express.Response
     if (debug) {
         res.send(Object.assign(response, { debug: { timing: debugVals, fetch: page.debug, url } }));
     } else {
-        res.send({ response });
+        res.send(Object.assign(response, {}));
     }
 }
 
