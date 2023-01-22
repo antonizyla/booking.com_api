@@ -46,6 +46,8 @@ module.exports.all = async function(req: Express.Request, res: Express.Response)
             rooms.push({ name: roomName, internalRef: roomId, occupancy: occupancy });
         }
     }
+    
+    console.log("got to end", Boolean(req.query.debug));
 
     if (Boolean(req.query.debug)) {
         res.send({ rooms, debug: { fetch: page.debug, url } });

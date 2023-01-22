@@ -27,7 +27,6 @@ module.exports.info = async function(req: Express.Request, res: Express.Response
         if (debug) {
             res.send({ error: "No content", debug: page.debug, url });
         }
-        res.send("An error occurred")
         return;
     }
 
