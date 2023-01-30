@@ -13,24 +13,18 @@ let redisClient: any;
 const app: Application = express();
 const port = process.env.PORT || 8080;
 
-var midWare = (req: any, res: any, next: any) => {
-    const key = req.url
-    redisClient.get(key, (err: any, result: any) => {
-        if (err == null && result != null) {
-            res.send('from cache')
+function midWare(req: any, res: any, next: any) {
+    const { username } = req.params;
+    redisClient.get(username, (error: any, cachedData: any) => {
+        if (error) throw error;
+        if (cachedData != null) {
+            res.send(res.setResponse(username, cachedData));
         } else {
-            res.sendResponse = res.send
-            res.send = (body: any) => {
-                redisClient.set(key, body, (err:any, reply: any) => {
-                    if (reply == 'OK')
-                        res.sendResponse(body)
-                })
-            }
-            next()
+            next();
         }
-    })
+    });
 }
-app.use(express.json());
+//app.use(express.json());
 
 let allRooms = require("./controllers/rooms/allRooms");
 app.get("/rooms/all", midWare, allRooms.all);
@@ -40,6 +34,9 @@ app.get("/rooms/prices", midWare, prices.prices);
 
 let info = require("./controllers/hotels/info");
 app.get("/hotels/info", midWare, info.info);
+
+let search = require("./controllers/hotels/search");
+app.get("/hotels/search", search.search);
 
 // start the Express server
 app.listen(port, () => {

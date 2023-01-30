@@ -89,5 +89,11 @@ async function fetchData(url: string, headers: object, debug: boolean = false, r
 
 }
 
+function extract_numbers(str: string): number[] {
+    if (str === null) {
+        return [];
+    }
+    return str.match(/d+([,.]?\d+)?/g)?.map((item) => { return Number(item) }) || [];
+}
 
-export { dateToString, extractOccupancy, toDecimalSep, fetchData };
+export { dateToString, extractOccupancy, toDecimalSep, fetchData, extract_numbers };
